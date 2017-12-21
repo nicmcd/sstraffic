@@ -35,6 +35,8 @@ def writeMatrix(matrix, filename):
   opener = gzip.open if filename.endswith('.gz') else open
   with opener(filename, 'wb') as fd:
     for r in range(matrix.shape[0]):
+      row = ''
       for c in range(matrix.shape[1]):
-        fd.write('{},'.format(matrix[r,c]).encode())
-      fd.write('\n'.encode())
+        row += '{},'.format(matrix[r,c])
+      row += '\n'
+      fd.write(row.encode())
