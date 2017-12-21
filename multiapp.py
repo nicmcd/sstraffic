@@ -32,6 +32,7 @@
 """
 
 import argparse
+import copy
 import numpy
 import random
 
@@ -74,7 +75,30 @@ placement_funcs = {'random': random_placement,
                    'striped': striped_placement,
                    'sequential': sequential_placement}
 
+
+def uniform_random_pattern(nodeset, matrix):
+  for src in nodeset:
+    for dst in nodeset:
+      if src != dst:
+        matrix[src, dst] = 1.0 / (len(nodeset) - 1)
+
+def random_permutation_pattern(nodeset, matrix):
+  dsts = copy.copy(nodeset)
+  for src in nodeset:
+    while True:
+      dst = random.sample(dsts, 1)[0]
+      if dst != src or len(dsts) == 1:
+        break
+    matrix[src, dst] = 1.0
+    dsts.remove(dst)
+
+pattern_funcs = {'uniform_random': uniform_random_pattern,
+                 'random_permutation': random_permutation_pattern}
+
+
 def main(args):
+  random.seed(args.seed)
+
   # use the placement function to create a node set for each app
   nodesets = placement_funcs[args.placement](args.nodes, args.apps)
   if args.verbose:
@@ -86,10 +110,7 @@ def main(args):
   for app, nodeset in enumerate(nodesets):
     if args.verbose:
       print('creating app {} matrix'.format(app))
-    for src in nodeset:
-      for dst in nodeset:
-        if src != dst:
-          matrices[app][src, dst] = 1.0 / (len(nodeset) - 1)
+    pattern_funcs[args.pattern[app]](nodeset, matrices[app])
 
   # write matrix file for each app
   for app, matrix in enumerate(matrices):
@@ -107,8 +128,13 @@ if __name__ == '__main__':
   ap.add_argument('placement', type=str,
                   choices=placement_funcs.keys(),
                   help='node placement policy for apps')
-  ap.add_argument('ofile', metavar='F', type=str, nargs='+',
+  ap.add_argument('-p', '--pattern', metavar='P', type=str, nargs='+',
+                  choices=pattern_funcs.keys(),
+                  help='app traffic pattern')
+  ap.add_argument('-o', '--ofile', metavar='F', type=str, nargs='+',
                   help='output file')
+  ap.add_argument('-s', '--seed', type=int, default=None,
+                  help='seed for randomness (if used')
   ap.add_argument('-v', '--verbose', action='store_true',
                   help='print various info as the program runs')
   args = ap.parse_args()
@@ -118,6 +144,7 @@ if __name__ == '__main__':
   assert args.nodes > 0
   assert args.apps > 0
   assert args.nodes > args.apps
+  assert len(args.ofile) == args.apps, 'give a pattern for each app'
   assert len(args.ofile) == args.apps, 'give a ofile for each app'
 
   main(args)
