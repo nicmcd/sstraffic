@@ -37,3 +37,7 @@ nosetests.xml
 # figures
 *.png
 *.pdf
+
+# outputs
+*.csv
+*.csv.gz
