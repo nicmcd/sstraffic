@@ -33,10 +33,27 @@
 
 import argparse
 import copy
+import gzip
 import numpy
 import random
 
-from matrix import *
+def write_matrix(matrix, filename):
+  opener = gzip.open if filename.endswith('.gz') else open
+  with opener(filename, 'wb') as fd:
+    for r in range(matrix.shape[0]):
+      row = ''
+      for c in range(matrix.shape[1]):
+        row += '{},'.format(matrix[r,c])
+      row += '\n'
+      fd.write(row.encode())
+
+def write_injection(nodes, nodeset, filename):
+  opener = gzip.open if filename.endswith('.gz') else open
+  with opener(filename, 'wb') as fd:
+    inj = ''
+    for node in range(nodes):
+      inj += '1.0,\n' if node in nodeset else '0.0,\n'
+    fd.write(inj.encode())
 
 def random_placement(nodes, apps):
   allnodes = set(range(0, nodes))
@@ -92,8 +109,21 @@ def random_permutation_pattern(nodeset, matrix):
     matrix[src, dst] = 1.0
     dsts.remove(dst)
 
+def complement_pattern(nodeset, matrix):
+  nodelist = sorted(list(nodeset))
+  for src_idx in range(len(nodelist) // 2):
+    dst_idx = len(nodelist) - 1 - src_idx
+    src = nodelist[src_idx]
+    dst = nodelist[dst_idx]
+    matrix[src, dst] = 1.0
+    matrix[dst, src] = 1.0
+  if len(nodelist) % 2 == 1:
+    middle = nodelist[len(nodelist) // 2]
+    matrix[middle, middle] = 1.0
+
 pattern_funcs = {'uniform_random': uniform_random_pattern,
-                 'random_permutation': random_permutation_pattern}
+                 'random_permutation': random_permutation_pattern,
+                 'complement': complement_pattern}
 
 
 def main(args):
@@ -115,8 +145,14 @@ def main(args):
   # write matrix file for each app
   for app, matrix in enumerate(matrices):
     if args.verbose:
-      print('writing app {} file'.format(app))
-    writeMatrix(matrix, args.ofile[app])
+      print('writing app {} matrix file'.format(app))
+    write_matrix(matrix, args.mfile[app])
+
+  # write injection file for each app
+  for app, nodeset in enumerate(nodesets):
+    if args.verbose:
+      print('writing app {} injection file'.format(app))
+    write_injection(args.nodes, nodeset, args.ifile[app])
 
 
 if __name__ == '__main__':
@@ -131,10 +167,12 @@ if __name__ == '__main__':
   ap.add_argument('-p', '--pattern', metavar='P', type=str, nargs='+',
                   choices=pattern_funcs.keys(),
                   help='app traffic pattern')
-  ap.add_argument('-o', '--ofile', metavar='F', type=str, nargs='+',
-                  help='output file')
   ap.add_argument('-s', '--seed', type=int, default=None,
                   help='seed for randomness (if used')
+  ap.add_argument('-m', '--mfile', metavar='F', type=str, nargs='+',
+                  help='output matrix file')
+  ap.add_argument('-i', '--ifile', metavar='F', type=str, nargs='+',
+                  help='output injection file')
   ap.add_argument('-v', '--verbose', action='store_true',
                   help='print various info as the program runs')
   args = ap.parse_args()
@@ -144,7 +182,8 @@ if __name__ == '__main__':
   assert args.nodes > 0
   assert args.apps > 0
   assert args.nodes > args.apps
-  assert len(args.ofile) == args.apps, 'give a pattern for each app'
-  assert len(args.ofile) == args.apps, 'give a ofile for each app'
+  assert len(args.pattern) == args.apps, 'give a pattern for each app'
+  assert len(args.mfile) == args.apps, 'give a mfile for each app'
+  assert len(args.ifile) == args.apps, 'give a ifile for each app'
 
   main(args)
