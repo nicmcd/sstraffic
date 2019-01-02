@@ -168,7 +168,7 @@ if __name__ == '__main__':
                   choices=pattern_funcs.keys(),
                   help='app traffic pattern')
   ap.add_argument('-s', '--seed', type=int, default=None,
-                  help='seed for randomness (if used')
+                  help='seed for randomness (if used)')
   ap.add_argument('-m', '--mfile', metavar='F', type=str, nargs='+',
                   help='output matrix file')
   ap.add_argument('-i', '--ifile', metavar='F', type=str, nargs='+',
