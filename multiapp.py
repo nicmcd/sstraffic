@@ -99,6 +99,11 @@ def uniform_random_pattern(nodeset, matrix):
       if src != dst:
         matrix[src, dst] = 1.0 / (len(nodeset) - 1)
 
+def uniform_random_self_pattern(nodeset, matrix):
+  for src in nodeset:
+    for dst in nodeset:
+      matrix[src, dst] = 1.0 / len(nodeset)
+
 def random_permutation_pattern(nodeset, matrix):
   dsts = copy.copy(nodeset)
   for src in nodeset:
@@ -121,9 +126,12 @@ def complement_pattern(nodeset, matrix):
     middle = nodelist[len(nodelist) // 2]
     matrix[middle, middle] = 1.0
 
-pattern_funcs = {'uniform_random': uniform_random_pattern,
-                 'random_permutation': random_permutation_pattern,
-                 'complement': complement_pattern}
+pattern_funcs = {
+  'uniform_random': uniform_random_pattern,
+  'uniform_random_self': uniform_random_self_pattern,
+  'random_permutation': random_permutation_pattern,
+  'complement': complement_pattern,
+}
 
 
 def main(args):
@@ -182,8 +190,11 @@ if __name__ == '__main__':
   assert args.nodes > 0
   assert args.apps > 0
   assert args.nodes > args.apps
-  assert len(args.pattern) == args.apps, 'give a pattern for each app'
-  assert len(args.mfile) == args.apps, 'give a mfile for each app'
-  assert len(args.ifile) == args.apps, 'give a ifile for each app'
+  assert args.pattern and len(args.pattern) == args.apps, \
+    'give a pattern for each app'
+  assert args.mfile and len(args.mfile) == args.apps, \
+    'give a mfile for each app'
+  assert args.ifile and len(args.ifile) == args.apps, \
+    'give a ifile for each app'
 
   main(args)
